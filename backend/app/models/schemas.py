@@ -18,10 +18,18 @@ class PDFUploadResponse(BaseModel):
     chunks_created: int
 
 
+class ChatMessage(BaseModel):
+    """Individual chat message model."""
+    role: str = Field(..., description="Role: 'user' or 'assistant'")
+    content: str = Field(..., description="Message content")
+    timestamp: Optional[str] = Field(None, description="Message timestamp")
+
+
 class ChatRequest(BaseModel):
     """Request model for chat queries."""
     message: str = Field(..., min_length=1, max_length=1000, description="User question")
     document_id: Optional[str] = Field(None, description="Specific document to query")
+    conversation_history: List[ChatMessage] = Field(default=[], description="Previous messages in conversation")
     temperature: float = Field(0.7, ge=0.0, le=1.0, description="Response creativity")
     max_tokens: int = Field(500, ge=50, le=2000, description="Maximum response length")
 

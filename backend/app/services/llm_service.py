@@ -44,6 +44,7 @@ class LLMService:
         self, 
         query: str, 
         context_chunks: List[Dict],
+        conversation_history: List[Dict] = None,
         temperature: float = 0.7,
         max_tokens: int = 500
     ) -> str:
@@ -53,7 +54,7 @@ class LLMService:
         if settings.cohere_api_key or settings.openai_api_key or settings.anthropic_api_key:
             try:
                 return await self._generate_with_external_api(
-                    query, context_chunks, temperature, max_tokens
+                    query, context_chunks, conversation_history, temperature, max_tokens
                 )
             except Exception as e:
                 logger.warning("External API failed, falling back to local model", error=str(e))
@@ -61,7 +62,7 @@ class LLMService:
         # Use local model as fallback
         if settings.use_local_llm and self.local_model:
             return await self._generate_with_local_model(
-                query, context_chunks, temperature, max_tokens
+                query, context_chunks, conversation_history, temperature, max_tokens
             )
         else:
             # Final fallback to rule-based response
@@ -71,8 +72,9 @@ class LLMService:
         self,
         query: str,
         context_chunks: List[Dict],
-        temperature: float,
-        max_tokens: int
+        conversation_history: List[Dict] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 500
     ) -> str:
         """Generate response using local model."""
         try:
@@ -130,24 +132,25 @@ class LLMService:
         self,
         query: str,
         context_chunks: List[Dict],
-        temperature: float,
-        max_tokens: int
+        conversation_history: List[Dict] = None,
+        temperature: float = 0.7,
+        max_tokens: int = 500
     ) -> str:
         """Generate response using external API (Cohere, OpenAI, or Anthropic)."""
         
         context = self._format_context(context_chunks)
         
         if settings.cohere_api_key:
-            return await self._call_cohere_api(query, context, temperature, max_tokens)
+            return await self._call_cohere_api(query, context, conversation_history, temperature, max_tokens)
         elif settings.openai_api_key:
-            return await self._call_openai_api(query, context, temperature, max_tokens)
+            return await self._call_openai_api(query, context, conversation_history, temperature, max_tokens)
         elif settings.anthropic_api_key:
-            return await self._call_anthropic_api(query, context, temperature, max_tokens)
+            return await self._call_anthropic_api(query, context, conversation_history, temperature, max_tokens)
         else:
             raise Exception("No external API key configured")
 
     async def _call_cohere_api(
-        self, query: str, context: str, temperature: float, max_tokens: int
+        self, query: str, context: str, conversation_history: List[Dict] = None, temperature: float = 0.7, max_tokens: int = 500
     ) -> str:
         """Call Cohere API for text generation."""
         headers = {
@@ -155,12 +158,22 @@ class LLMService:
             "Content-Type": "application/json"
         }
         
+        # Build conversation context
+        history_text = ""
+        if conversation_history:
+            history_parts = []
+            for msg in conversation_history[-6:]:  # Last 6 messages for context
+                role = "Human" if msg.role == "user" else "Assistant"
+                history_parts.append(f"{role}: {msg.content}")
+            history_text = "\n".join(history_parts)
+        
         prompt = f"""Based on the following context, please answer the question accurately and concisely.
 
 Context:
 {context}
 
-Question: {query}
+{f"Previous conversation:{chr(10)}{history_text}{chr(10)}" if history_text else ""}
+Current question: {query}
 
 Answer:"""
 
@@ -184,7 +197,7 @@ Answer:"""
             return result["generations"][0]["text"].strip()
 
     async def _call_openai_api(
-        self, query: str, context: str, temperature: float, max_tokens: int
+        self, query: str, context: str, conversation_history: List[Dict] = None, temperature: float = 0.7, max_tokens: int = 500
     ) -> str:
         """Call OpenAI API."""
         headers = {
@@ -193,9 +206,22 @@ Answer:"""
         }
         
         messages = [
-            {"role": "system", "content": "You are a helpful assistant that answers questions based on provided context. Use only the information from the context to answer questions."},
-            {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer:"}
+            {"role": "system", "content": "You are a helpful assistant that answers questions based on provided context. Use only the information from the context to answer questions."}
         ]
+        
+        # Add conversation history
+        if conversation_history:
+            for msg in conversation_history[-6:]:  # Last 6 messages
+                messages.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+        
+        # Add current query with context
+        messages.append({
+            "role": "user", 
+            "content": f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer:"
+        })
         
         data = {
             "model": "gpt-3.5-turbo",
@@ -216,7 +242,7 @@ Answer:"""
             return result["choices"][0]["message"]["content"].strip()
 
     async def _call_anthropic_api(
-        self, query: str, context: str, temperature: float, max_tokens: int
+        self, query: str, context: str, conversation_history: List[Dict] = None, temperature: float = 0.7, max_tokens: int = 500
     ) -> str:
         """Call Anthropic API."""
         headers = {

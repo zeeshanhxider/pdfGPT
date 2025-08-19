@@ -159,7 +159,8 @@ class RAGPipeline:
                 query=request.message,
                 context_chunks=similar_chunks,
                 temperature=request.temperature,
-                max_tokens=request.max_tokens
+                max_tokens=request.max_tokens,
+                conversation_history=request.conversation_history
             )
             
             # Extract sources and calculate confidence

@@ -9,11 +9,17 @@ export interface PDFUploadResponse {
   chunks_created: number;
 }
 
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface ChatRequest {
   message: string;
   document_id?: string;
   temperature?: number;
   max_tokens?: number;
+  conversation_history?: ChatMessage[];
 }
 
 export interface ChatResponse {
