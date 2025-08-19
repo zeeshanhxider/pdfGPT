@@ -22,6 +22,29 @@ router = APIRouter()
 rag_pipeline = RAGPipeline()
 
 
+@router.get("/debug/database")
+async def debug_database():
+    """Debug endpoint to check database status."""
+    try:
+        collection = rag_pipeline.embedding_service.collection
+        total_count = collection.count()
+        
+        # Get a sample of documents
+        sample_result = collection.get(
+            limit=5,
+            include=["documents", "metadatas"]
+        )
+        
+        return {
+            "total_chunks": total_count,
+            "sample_documents": sample_result.get("documents", [])[:2],  # First 2 for brevity
+            "sample_metadatas": sample_result.get("metadatas", [])[:2],
+            "similarity_threshold": settings.similarity_threshold
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @router.post("/upload", response_model=PDFUploadResponse)
 async def upload_pdf(file: UploadFile = File(...)):
     """
@@ -99,6 +122,49 @@ async def chat(request: ChatRequest):
     except Exception as e:
         logger.error("Chat error", message=request.message[:100], error=str(e))
         raise HTTPException(status_code=500, detail=f"Failed to process chat: {str(e)}")
+
+
+@router.post("/debug/chat")
+async def debug_chat(request: dict):
+    """Debug chat endpoint that searches all documents."""
+    try:
+        query = request.get("message", "")
+        
+        # Search without document_id filtering
+        similar_chunks = await rag_pipeline.embedding_service.search_similar_chunks(
+            query=query,
+            document_id=None,  # Search all documents
+            k=5
+        )
+        
+        return {
+            "query": query,
+            "chunks_found": len(similar_chunks),
+            "chunks": similar_chunks[:2] if similar_chunks else [],  # Show first 2
+            "similarity_threshold": settings.similarity_threshold
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@router.post("/debug/full-chat")
+async def debug_full_chat(request: ChatRequest):
+    """Debug endpoint that mimics the full chat flow."""
+    try:
+        # Use the exact same flow as regular chat
+        response = await rag_pipeline.answer_question(request)
+        return {
+            "original_request": {
+                "message": request.message,
+                "document_id": request.document_id
+            },
+            "response": response.dict(),
+            "debug_info": {
+                "similarity_threshold": settings.similarity_threshold
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @router.get("/health", response_model=HealthResponse)

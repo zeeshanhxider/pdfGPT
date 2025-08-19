@@ -17,44 +17,29 @@ class LLMService:
     def __init__(self):
         self.local_model = None
         self.tokenizer = None
-        self._initialize_local_model()
+        if settings.use_local_llm:
+            self._initialize_local_model()
     
     def _initialize_local_model(self):
         """Initialize local LLM model."""
-        if settings.use_local_llm:
-            try:
-                logger.info("Loading local LLM model", model=settings.local_llm_model_name)
-                
-                # For a more capable but smaller model, we'll use a text generation pipeline
-                self.local_model = pipeline(
-                    "text-generation",
-                    model="microsoft/DialoGPT-medium",
-                    tokenizer="microsoft/DialoGPT-medium",
-                    device=0 if torch.cuda.is_available() else -1,
-                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
-                )
-                
-                logger.info("Local LLM model loaded successfully")
-                
-            except Exception as e:
-                logger.error("Failed to load local LLM model", error=str(e))
-                # Fall back to a simpler approach
-                self._initialize_simple_model()
-    
-    def _initialize_simple_model(self):
-        """Initialize a simpler model as fallback."""
         try:
-            logger.info("Loading fallback model")
+            logger.info("Loading local LLM model", model=settings.local_llm_model_name)
+            
+            # For a more capable but smaller model, we'll use a text generation pipeline
             self.local_model = pipeline(
-                "text-generation", 
-                model="gpt2",
-                device=0 if torch.cuda.is_available() else -1
+                "text-generation",
+                model="microsoft/DialoGPT-medium",
+                tokenizer="microsoft/DialoGPT-medium",
+                device=0 if torch.cuda.is_available() else -1,
+                torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32
             )
-            logger.info("Fallback model loaded successfully")
+            
+            logger.info("Local LLM model loaded successfully")
+            
         except Exception as e:
-            logger.error("Failed to load fallback model", error=str(e))
+            logger.error("Failed to load local LLM model", error=str(e))
             self.local_model = None
-    
+
     async def generate_response(
         self, 
         query: str, 
@@ -64,8 +49,8 @@ class LLMService:
     ) -> str:
         """Generate a response using the available LLM."""
         
-        # If external APIs are configured and preferred, try them first
-        if settings.openai_api_key or settings.anthropic_api_key:
+        # Try external APIs first (better quality)
+        if settings.cohere_api_key or settings.openai_api_key or settings.anthropic_api_key:
             try:
                 return await self._generate_with_external_api(
                     query, context_chunks, temperature, max_tokens
@@ -73,15 +58,15 @@ class LLMService:
             except Exception as e:
                 logger.warning("External API failed, falling back to local model", error=str(e))
         
-        # Use local model
-        if self.local_model:
+        # Use local model as fallback
+        if settings.use_local_llm and self.local_model:
             return await self._generate_with_local_model(
                 query, context_chunks, temperature, max_tokens
             )
         else:
-            # Fallback to rule-based response
+            # Final fallback to rule-based response
             return self._generate_fallback_response(query, context_chunks)
-    
+
     async def _generate_with_local_model(
         self,
         query: str,
@@ -124,6 +109,11 @@ class LLMService:
             # Clean up the response
             answer = self._clean_response(answer)
             
+            # If answer is empty or too short, use fallback
+            if not answer or len(answer.strip()) < 10:
+                logger.warning("Generated answer is empty or too short, using fallback")
+                return self._generate_fallback_response(query, context_chunks)
+            
             logger.info(
                 "Local model response generated",
                 generation_time=generation_time,
@@ -135,7 +125,7 @@ class LLMService:
         except Exception as e:
             logger.error("Failed to generate response with local model", error=str(e))
             return self._generate_fallback_response(query, context_chunks)
-    
+
     async def _generate_with_external_api(
         self,
         query: str,
@@ -143,17 +133,56 @@ class LLMService:
         temperature: float,
         max_tokens: int
     ) -> str:
-        """Generate response using external API (OpenAI or Anthropic)."""
+        """Generate response using external API (Cohere, OpenAI, or Anthropic)."""
         
         context = self._format_context(context_chunks)
         
-        if settings.openai_api_key:
+        if settings.cohere_api_key:
+            return await self._call_cohere_api(query, context, temperature, max_tokens)
+        elif settings.openai_api_key:
             return await self._call_openai_api(query, context, temperature, max_tokens)
         elif settings.anthropic_api_key:
             return await self._call_anthropic_api(query, context, temperature, max_tokens)
         else:
             raise Exception("No external API key configured")
-    
+
+    async def _call_cohere_api(
+        self, query: str, context: str, temperature: float, max_tokens: int
+    ) -> str:
+        """Call Cohere API for text generation."""
+        headers = {
+            "Authorization": f"Bearer {settings.cohere_api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        prompt = f"""Based on the following context, please answer the question accurately and concisely.
+
+Context:
+{context}
+
+Question: {query}
+
+Answer:"""
+
+        data = {
+            "model": "command-r-plus",  # Cohere's latest model
+            "prompt": prompt,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "truncate": "END"
+        }
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.cohere.ai/v1/generate",
+                headers=headers,
+                json=data,
+                timeout=30.0
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result["generations"][0]["text"].strip()
+
     async def _call_openai_api(
         self, query: str, context: str, temperature: float, max_tokens: int
     ) -> str:
@@ -171,8 +200,8 @@ class LLMService:
         data = {
             "model": "gpt-3.5-turbo",
             "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
+            "temperature": temperature
         }
         
         async with httpx.AsyncClient() as client:
@@ -185,7 +214,7 @@ class LLMService:
             response.raise_for_status()
             result = response.json()
             return result["choices"][0]["message"]["content"].strip()
-    
+
     async def _call_anthropic_api(
         self, query: str, context: str, temperature: float, max_tokens: int
     ) -> str:
@@ -196,7 +225,14 @@ class LLMService:
             "anthropic-version": "2023-06-01"
         }
         
-        prompt = f"Human: Based on the following context, please answer the question.\n\nContext:\n{context}\n\nQuestion: {query}\n\nAssistant:"
+        prompt = f"""Based on the following context, please answer the question accurately and concisely.
+
+Context:
+{context}
+
+Question: {query}
+
+Answer:"""
         
         data = {
             "model": "claude-3-sonnet-20240229",
@@ -215,7 +251,7 @@ class LLMService:
             response.raise_for_status()
             result = response.json()
             return result["content"][0]["text"].strip()
-    
+
     def _format_context(self, context_chunks: List[Dict]) -> str:
         """Format context chunks into a coherent context string."""
         if not context_chunks:
@@ -230,7 +266,7 @@ class LLMService:
             context_parts.append(f"[Source {i} - Page {page_num}]\n{content}")
         
         return "\n\n".join(context_parts)
-    
+
     def _create_prompt(self, query: str, context: str) -> str:
         """Create a prompt for the language model."""
         return f"""Based on the following context, please answer the question accurately and concisely.
@@ -241,7 +277,7 @@ Context:
 Question: {query}
 
 Answer:"""
-    
+
     def _clean_response(self, response: str) -> str:
         """Clean up the generated response."""
         # Remove common artifacts
@@ -250,13 +286,11 @@ Answer:"""
         # Remove repetitive text (common in smaller models)
         lines = response.split('\n')
         cleaned_lines = []
-        seen_lines = set()
         
         for line in lines:
             line = line.strip()
-            if line and line not in seen_lines:
+            if line and line not in cleaned_lines[-3:]:  # Avoid immediate repetition
                 cleaned_lines.append(line)
-                seen_lines.add(line)
         
         response = '\n'.join(cleaned_lines)
         
@@ -265,21 +299,35 @@ Answer:"""
             response = response[:1000] + "..."
         
         return response
-    
+
     def _generate_fallback_response(self, query: str, context_chunks: List[Dict]) -> str:
         """Generate a simple fallback response when models are unavailable."""
         if not context_chunks:
             return "I couldn't find relevant information in the document to answer your question."
         
-        # Simple extractive approach - return the most relevant chunk
-        best_chunk = context_chunks[0] if context_chunks else None
-        
-        if best_chunk:
-            content = best_chunk["content"]
+        # Create a response based on the most relevant chunks
+        relevant_info = []
+        for i, chunk in enumerate(context_chunks[:2]):  # Use top 2 chunks
+            content = chunk["content"]
             # Truncate if too long
-            if len(content) > 300:
-                content = content[:300] + "..."
-            
-            return f"Based on the document, here's the relevant information I found: {content}"
+            if len(content) > 200:
+                content = content[:200] + "..."
+            relevant_info.append(content)
         
-        return "I found some relevant content in the document, but I'm unable to generate a proper response at the moment."
+        combined_content = " ".join(relevant_info)
+        
+        # Generate a simple response based on the query type
+        query_lower = query.lower()
+        
+        if any(word in query_lower for word in ["what", "about", "describe", "summary", "summarize"]):
+            return f"Based on the document, this appears to be about: {combined_content}"
+        elif any(word in query_lower for word in ["when", "time", "date", "schedule"]):
+            return f"According to the document: {combined_content}"
+        elif any(word in query_lower for word in ["where", "location", "place"]):
+            return f"The document mentions: {combined_content}"
+        elif any(word in query_lower for word in ["who", "person", "people"]):
+            return f"From the document: {combined_content}"
+        elif any(word in query_lower for word in ["how", "process", "method"]):
+            return f"The document explains: {combined_content}"
+        else:
+            return f"Based on your question about '{query}', here's what I found in the document: {combined_content}"

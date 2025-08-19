@@ -135,6 +135,15 @@ class RAGPipeline:
                 k=5  # Retrieve top 5 chunks
             )
             
+            # If no chunks found with document_id, try searching all documents
+            if not similar_chunks and request.document_id:
+                logger.info("No chunks found for specific document, searching all documents")
+                similar_chunks = await self.embedding_service.search_similar_chunks(
+                    query=request.message,
+                    document_id=None,  # Search all documents
+                    k=5
+                )
+            
             if not similar_chunks:
                 processing_time = time.time() - start_time
                 return ChatResponse(

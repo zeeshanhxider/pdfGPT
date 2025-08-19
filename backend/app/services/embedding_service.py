@@ -117,6 +117,11 @@ class EmbeddingService:
             )
             
             logger.info("Chunks stored successfully", count=len(chunks))
+            
+            # Verify storage by checking collection count
+            count = self.collection.count()
+            logger.info(f"Total chunks in collection after storage: {count}")
+            
             return True
             
         except Exception as e:
@@ -133,6 +138,16 @@ class EmbeddingService:
         try:
             k = k or settings.retrieval_k
             
+            logger.info(f"Searching for query: '{query}' with document_id: {document_id}, k: {k}")
+            
+            # Check total chunks in collection first
+            total_count = self.collection.count()
+            logger.info(f"Total chunks in collection: {total_count}")
+            
+            if total_count == 0:
+                logger.warning("No chunks found in collection - upload a document first")
+                return []
+            
             # Generate query embedding
             query_embedding = await self.embed_text(query)
             
@@ -140,6 +155,7 @@ class EmbeddingService:
             where_clause = None
             if document_id:
                 where_clause = {"document_id": document_id}
+                logger.info(f"Filtering by document_id: {document_id}")
             
             # Search in ChromaDB
             results = self.collection.query(
@@ -149,9 +165,19 @@ class EmbeddingService:
                 include=["documents", "metadatas", "distances"]
             )
             
+            # If no results with document_id filter, try without filter
+            if document_id and (not results["documents"] or not results["documents"][0]):
+                logger.warning(f"No chunks found for document_id {document_id}, searching all documents")
+                results = self.collection.query(
+                    query_embeddings=[query_embedding],
+                    n_results=k,
+                    include=["documents", "metadatas", "distances"]
+                )
+            
             # Format results
             similar_chunks = []
             if results["documents"] and results["documents"][0]:
+                logger.info(f"Found {len(results['documents'][0])} potential chunks")
                 for i, (doc, metadata, distance) in enumerate(zip(
                     results["documents"][0],
                     results["metadatas"][0], 
@@ -159,6 +185,7 @@ class EmbeddingService:
                 )):
                     # Convert distance to similarity score (cosine distance -> similarity)
                     similarity = 1 - distance
+                    logger.info(f"Chunk {i+1}: similarity={similarity:.3f}, threshold={settings.similarity_threshold}")
                     
                     if similarity >= settings.similarity_threshold:
                         similar_chunks.append({
@@ -167,6 +194,8 @@ class EmbeddingService:
                             "similarity": similarity,
                             "rank": i + 1
                         })
+            else:
+                logger.warning("No documents returned from ChromaDB search")
             
             logger.info(
                 "Similar chunks retrieved",

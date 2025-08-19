@@ -32,12 +32,13 @@ class Settings(BaseSettings):
     embedding_device: str = "cpu"  # Change to "cuda" if GPU available
     
     # LLM settings
-    use_local_llm: bool = True
+    use_local_llm: bool = False  # Prefer external APIs for better quality
     local_llm_model_name: str = "microsoft/DialoGPT-medium"
     
     # External API settings (optional)
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    cohere_api_key: Optional[str] = None
     
     # Text processing settings
     chunk_size: int = 1000
@@ -46,7 +47,7 @@ class Settings(BaseSettings):
     
     # Retrieval settings
     retrieval_k: int = 5  # Number of chunks to retrieve
-    similarity_threshold: float = 0.7
+    similarity_threshold: float = 0.1  # Very low threshold for testing
     
     class Config:
         env_file = ".env"
