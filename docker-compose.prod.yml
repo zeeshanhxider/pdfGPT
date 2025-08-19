@@ -1,0 +1,14 @@
+# Production Docker Compose Override
+version: '3.8'
+
+services:
+  backend:
+    environment:
+      - DEBUG=false
+      - CORS_ORIGINS=["https://yourdomain.com"]
+    restart: always
+    
+  frontend:
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=https://api.yourdomain.com
+    restart: always

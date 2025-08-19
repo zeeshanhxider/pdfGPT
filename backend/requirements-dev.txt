@@ -1,0 +1,13 @@
+# Minimal requirements for development/testing
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.12
+pdfplumber>=0.11.4
+PyPDF2>=3.0.1
+python-dotenv>=1.0.0
+pydantic>=2.8.0
+pydantic-settings>=2.4.0
+
+# Optional: Lighter alternatives for development
+# torch-cpu  # Use this instead of torch for CPU-only development
+# sentence-transformers-light  # If available, lighter version
