@@ -165,15 +165,6 @@ class EmbeddingService:
                 include=["documents", "metadatas", "distances"]
             )
             
-            # If no results with document_id filter, try without filter
-            if document_id and (not results["documents"] or not results["documents"][0]):
-                logger.warning(f"No chunks found for document_id {document_id}, searching all documents")
-                results = self.collection.query(
-                    query_embeddings=[query_embedding],
-                    n_results=k,
-                    include=["documents", "metadatas", "distances"]
-                )
-            
             # Format results
             similar_chunks = []
             if results["documents"] and results["documents"][0]:
