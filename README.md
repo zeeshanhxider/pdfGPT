@@ -4,13 +4,12 @@ An AI-powered document interaction system that allows you to upload PDF document
 
 ## ✨ Features
 
-- 🔍 **Semantic Search**: AI embeddings for intelligent content discovery
-- 💬 **Interactive Chat**: Natural language interface for querying documents
-- 📁 **Document Management**: Upload, organize, and manage PDF documents
-- 🏷️ **Smart Tagging**: AI-powered automatic tag suggestions
-- 🗄️ **Vector Database**: PostgreSQL with pgvector for fast similarity search
-- 🎨 **Modern UI**: Clean, professional interface with intuitive navigation
-- 🔒 **Local Processing**: Embeddings generated locally for privacy
+- **Semantic Search**: AI embeddings for intelligent content discovery
+- **Interactive Chat**: Natural language interface for querying documents
+- **Document Management**: Upload, organize, and manage PDF documents
+- **Smart Tagging**: AI-powered automatic tag suggestions
+- **Vector Database**: PostgreSQL with pgvector for fast similarity search
+- **Local Processing**: Embeddings generated locally for privacy
 
 ## 📋 Prerequisites
 
@@ -20,7 +19,7 @@ Before running this application, you need to have the following installed:
 2. **PostgreSQL with pgvector extension**
 3. **Cohere API Key** (sign up at https://cohere.ai/)
 
-## Database Setup
+## 🗄️ Database Setup
 
 ### 1. Install PostgreSQL
 
