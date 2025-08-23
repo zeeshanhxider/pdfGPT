@@ -1,6 +1,18 @@
-# PDF GPT - RAG Application Setup Guide
+# pdfGPT - RAG Application
 
-## Prerequisites
+An AI-powered document interaction system that allows you to upload PDF documents and have intelligent conversations with their content using Retrieval-Augmented Generation (RAG).
+
+## ✨ Features
+
+- 🔍 **Semantic Search**: AI embeddings for intelligent content discovery
+- 💬 **Interactive Chat**: Natural language interface for querying documents
+- 📁 **Document Management**: Upload, organize, and manage PDF documents
+- 🏷️ **Smart Tagging**: AI-powered automatic tag suggestions
+- 🗄️ **Vector Database**: PostgreSQL with pgvector for fast similarity search
+- 🎨 **Modern UI**: Clean, professional interface with intuitive navigation
+- 🔒 **Local Processing**: Embeddings generated locally for privacy
+
+## 📋 Prerequisites
 
 Before running this application, you need to have the following installed:
 
@@ -37,19 +49,23 @@ CREATE DATABASE pdfgpt;
 CREATE EXTENSION vector;
 ```
 
-## Application Setup
+## 🧩 Quick Start
 
-### 1. Install Python Dependencies
+### 1. Clone and Setup
 
 ```bash
+git clone <your-repo-url>
+cd pdfGPT
+python -m venv venv
+.\venv\Scripts\activate  # On Windows
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment Variables
+### 2. Configure Environment
 
-Update the `.env` file with your credentials:
+Create a `.env` file with your credentials:
 
-```
+```env
 DB_NAME=postgres
 DB_USER=postgres
 DB_PASSWORD=your_postgres_password
@@ -58,88 +74,36 @@ DB_PORT=5432
 COHERE_API_KEY=your_cohere_api_key
 ```
 
-### 3. Additional Windows Dependencies
-
-For PDF processing on Windows, you may need to install poppler:
-
-```bash
-# Download poppler for Windows from:
-# https://github.com/oschwartz10612/poppler-windows/releases
-# Extract and add the 'bin' folder to your PATH environment variable
-```
-
-## Running the Application
-
-### 1. Start the Streamlit Application
+### 3. Run the Application
 
 ```bash
 streamlit run Home.py
 ```
 
-### 2. Access the Application
+Visit http://localhost:8501 in your browser.
 
-Open your web browser and go to: http://localhost:8501
+## 🛠️ Technical Details
 
-## Usage Guide
+- **Frontend**: Streamlit 
+- **Backend**: Python with async processing
+- **Database**: PostgreSQL with pgvector extension
+- **AI**: Cohere API + local sentence-transformers
+- **Embeddings**: all-MiniLM-L6-v2 (384 dimensions)
 
-### Step 1: Create Tags
+## 📂 File Structure
 
-1. Go to "Manage Tags" page
-2. Create relevant tags for your documents (e.g., "Research", "Legal", "Technical")
+```
+pdfGPT/
+├── Home.py                     # Main application entry
+├── db.py                       # Database models and setup
+├── constants.py                # AI prompts and constants
+├── utils.py                    # Utility functions
+├── requirements.txt            # Python dependencies
+├── .env                        # Environment variables
+└── pages/
+    ├── chat_with_documents.py  # Chat interface
+    ├── manage_documents.py     # Document management
+    └── manage_tags.py          # Tag management
+```
 
-### Step 2: Upload Documents
-
-1. Go to "Manage Documents" page
-2. Click "Upload Document"
-3. Select a PDF file and upload it
-4. The system will automatically:
-   - Extract text from the PDF
-   - Generate embeddings for semantic search
-   - Suggest relevant tags
-   - Store everything in the database
-
-### Step 3: Chat with Documents
-
-1. Go to "Chat With Documents" page
-2. Ask questions about your uploaded documents
-3. The AI will search through your documents and provide answers based on the content
-
-## Troubleshooting
-
-### Common Issues:
-
-1. **Database Connection Error**
-
-   - Ensure PostgreSQL is running
-   - Check your database credentials in `.env`
-   - Verify the pgvector extension is installed
-
-2. **PDF Processing Error**
-
-   - Install poppler-utils (see setup instructions above)
-   - Ensure the PDF is not password-protected
-
-3. **Cohere API Error**
-
-   - Verify your API key is correct in `.env`
-   - Check your Cohere API usage limits
-
-4. **Import Errors**
-   - Run `pip install -r requirements.txt`
-   - Ensure you're using Python 3.8+
-
-### Performance Tips:
-
-- For better performance with large documents, consider chunking them into smaller pieces
-- The embedding model (all-MiniLM-L6-v2) provides a good balance of speed and accuracy
-- Increase `diskann.query_rescore` for better search accuracy at the cost of speed
-
-## Features
-
-- **Semantic Search**: Uses AI embeddings to find relevant content across documents
-- **Vector Database**: PostgreSQL with pgvector for efficient similarity search
-- **Smart Chunking**: Automatically breaks down documents into meaningful pieces
-- **AI-Powered Tagging**: Automatically suggests relevant tags for documents
-- **Interactive Chat**: Natural language interface for querying documents
-- **Document Management**: Upload, view, and organize PDF documents
-- **Tag Organization**: Create and manage tags for categorizing documents
+## Made with 🧡 by zeeshan

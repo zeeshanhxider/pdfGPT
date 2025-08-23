@@ -1,3 +1,3 @@
 import streamlit as st
-
-st.title("Chat With Docs")
+st.title("Welcome to pdfGPT")
+st.write("Upload a pdf and start chatting!")
