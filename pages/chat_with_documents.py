@@ -1,10 +1,18 @@
 import asyncio
 from typing import Literal, Optional, TypedDict, Union
 from anyio import sleep
+from os import getenv
 import streamlit as st
+from sentence_transformers import SentenceTransformer
+from cohere import Client
 from constants import RESPOND_TO_MESSAGE_SYSTEM_PROMPT
 from db import DocumentInformationChunks, set_diskann_query_rescore, set_cohere_api_key, db
 from peewee import SQL
+
+# Load the same embedding model used for document processing
+model = SentenceTransformer('all-MiniLM-L6-v2')
+# Initialize Cohere client
+co = Client(getenv("COHERE_API_KEY"))
 
 st.set_page_config(page_title="Chat With Documents")
 st.title("Chat With Documents")
@@ -25,10 +33,17 @@ def push_message(message: Message):
 
 async def send_message(input_message: str):
     related_document_information_chunks: list[str] = []
+    
+    # Generate embedding for the user's message using local model
+    query_embedding = model.encode(input_message).tolist()
+    
     with db.atomic() as transaction:
         set_diskann_query_rescore(100)
-        set_cohere_api_key()
-        result = DocumentInformationChunks.select().order_by(SQL(f"embedding <-> ai.cohere_embed('all-MiniLM-L6-v2',%s)", (input_message,))).limit(5).execute()
+        # Convert embedding to string format that PostgreSQL can understand
+        embedding_str = '[' + ','.join(map(str, query_embedding)) + ']'
+        result = DocumentInformationChunks.select().order_by(
+            SQL("embedding <-> %s::vector", (embedding_str,))
+        ).limit(5).execute()
         for row in result:
             related_document_information_chunks.append(row.chunk)
         transaction.commit()
@@ -40,34 +55,30 @@ async def send_message(input_message: str):
     total_retries = 0
     while True:
         try:
-            messages = ",\n".join([
-                f"jsonb_build_object('role', '{message['role']}', 'content', '{message['content']}')"
-                for message in st.session_state["messages"]
-            ])
-            with db.atomic() as transaction:
-                set_cohere_api_key()
-                response = db.execute_sql(f"""
-                    SELECT
-                    ai.cohere_chat_complete (
-                        'command-r-plus',
-                        jsonb_build_array(
-                            jsonb_build_object('role', 'system', 'content', %s),
-                            {messages}
-                        )
-                    ) -> 'choices' -> 0 -> 'message' ->> 'content';
-                """, (RESPOND_TO_MESSAGE_SYSTEM_PROMPT.replace("{{knowledge}}", "\n".join([
-                    f"{index + 1}. {chunk}"
-                    for index, chunk in enumerate(related_document_information_chunks)
-                ])), )).fetchone()[0]
-                transaction.commit()
-            if not response:
+            # Prepare knowledge context
+            knowledge_context = RESPOND_TO_MESSAGE_SYSTEM_PROMPT.replace("{{knowledge}}", "\n".join([
+                f"{index + 1}. {chunk}"
+                for index, chunk in enumerate(related_document_information_chunks)
+            ]))
+            
+            # Get the current user message (last message in the session)
+            current_message = st.session_state["messages"][-1]["content"]
+            
+            # Call Cohere API directly instead of using pgai
+            response = co.chat(
+                model="command-r-plus",
+                message=current_message,
+                preamble=knowledge_context
+            )
+            
+            if not response.text:
                 break
             push_message({
                 "role": "assistant",
-                "content": response,
+                "content": response.text,
                 "references": None
             })
-            print(f"Generated response: {response}")
+            print(f"Generated response: {response.text}")
             break
         except Exception as e:
             total_retries += 1

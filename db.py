@@ -43,18 +43,29 @@ class DocumentInformationChunks(Model):
       database = db
       db_table = 'document_information_chunks'
 
-DocumentInformationChunks.add_index('embedding vector_cosine_ops', using='diskann')  # Adds an index on the embedding column (VectorField) using cosine similarity (vector_cosine_ops) with the DiskANN algorithm (using='diskann') to make semantic search fast even on millions of embeddings.
-
 db.connect()
 db.create_tables([Documents, Tags, DocumentTags, DocumentInformationChunks])
 
+# Create vector index for similarity search using HNSW (more widely supported than diskann)
+try:
+    db.execute_sql("""
+        CREATE INDEX IF NOT EXISTS document_information_chunks_embedding_idx 
+        ON document_information_chunks 
+        USING hnsw (embedding vector_cosine_ops)
+    """)
+except Exception as e:
+    print(f"Could not create vector index (this is normal for first run): {e}")
+
 # both of those functions run raw SQL queries in Postgres
-# add an index on the embedding column (VectorField) using cosine similarity (vector_cosine_ops) with the DiskANN algorithm (using='diskann') to make semantic search fast even on millions of embeddings.
 def set_diskann_query_rescore(query_rescore: int):    
-   db.execute_sql(
-      "SET diskann.query_rescore = %s",
-      (query_rescore,)
-   )
+    # This function is kept for compatibility but diskann settings may not be available
+    try:
+        db.execute_sql(
+            "SET diskann.query_rescore = %s",
+            (query_rescore,)
+        )
+    except Exception as e:
+        print(f"diskann not available, using default settings: {e}")
 
 # Tells Postgres (via pgai) which Cohere API key to use for embedding or AI queries for the current session
 def set_cohere_api_key():

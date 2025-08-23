@@ -48,6 +48,11 @@ async def generate_chunks(index: int, pdf_text_chunk: str):
             text = response.text
             # Split the text into a list of facts, one per line, and remove any empty lines or extra spaces
             facts = [fact.strip() for fact in text.split("\n") if fact.strip()]
+            
+            # If no facts were generated, use the original chunk
+            if not facts:
+                facts = [pdf_text_chunk]
+            
             print(f"Generated {len(facts)} facts for chunk {index}.")
             return facts  
         except Exception as e:
@@ -114,11 +119,26 @@ def upload_document(name: str, pdf_file: bytes):
     # Only use the first 5000 characters of the PDF for tag generation (to save time and cost)
     gather_task = asyncio.gather(*chunks_task, get_matching_tags(pdf_text[:5000]))
     # Run all the tasks and wait for them to finish; get the results
-    document_chunks, matching_tag_ids = loop.run_until_complete(gather_task)
+    results = loop.run_until_complete(gather_task)
     loop.close()  
 
-    # The result for document_chunks is a list of lists (one list per chunk), so flatten it into a single list
-    document_chunks = list(chain.from_iterable(document_chunks))
+    # Split the results: all but the last are document chunks, last is matching tag IDs
+    document_chunks_lists = results[:-1]  # List of lists of facts
+    matching_tag_ids = results[-1]        # List of tag IDs
+    
+    # Flatten the list of lists into a single list of facts
+    document_chunks = []
+    for chunk_list in document_chunks_lists:
+        if isinstance(chunk_list, list):
+            document_chunks.extend(chunk_list)
+        else:
+            # If it's not a list (shouldn't happen), treat it as a single chunk
+            document_chunks.append(str(chunk_list))
+    
+    # Debug: Print what we're about to store
+    print(f"About to store {len(document_chunks)} chunks")
+    for i, chunk in enumerate(document_chunks[:3]):  # Print first 3 chunks
+        print(f"Chunk {i}: {chunk[:100]}...")  # Print first 100 chars of each chunk
 
     # Save everything to the database in a single transaction (so it all succeeds or fails together)
     with db.atomic() as transaction:
