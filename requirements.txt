@@ -1,0 +1,10 @@
+streamlit==1.39.0
+pgvector
+peewee
+PyPDF2
+cohere
+sentence-transformers
+pydantic
+anyio
+python-dotenv
+psycopg2-binary
