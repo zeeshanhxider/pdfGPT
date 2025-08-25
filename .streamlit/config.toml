@@ -1,0 +1,18 @@
+[server]
+# Improve performance
+maxUploadSize = 50
+enableCORS = false
+enableXsrfProtection = false
+
+[global]
+# Performance optimizations
+dataFrameSerialization = "legacy"
+
+[theme]
+# Optional: Set a consistent theme
+primaryColor = "#72ff6bff"             
+base="dark"
+
+[browser]
+# Don't auto-open browser (useful for deployment)
+gatherUsageStats = false
