@@ -1,0 +1,21 @@
+# === Core Server ===
+fastapi==0.115.0
+uvicorn[standard]==0.30.3
+python-multipart==0.0.9
+python-dotenv==1.0.1
+PyPDF2==3.0.1
+
+# === LangChain Ecosystem (Pydantic v2 native) ===
+langchain==0.3.0
+langchain-core>=0.3.0,<0.4
+langchain-community>=0.3.0,<0.4
+langchain-google-genai>=2.0.0,<3.0.0
+
+# === Vector DB + Embeddings / Pinecone integration ===
+langchain-pinecone>=0.2.0,<0.3.0
+pinecone>=7.0.0  # latest Pinecone python SDK. The package was renamed from pinecone-client to pinecone. :contentReference[oaicite:0]{index=0}
+sentence-transformers==2.7.0
+
+# === Validation & Schema ===
+pydantic>=2.0,<3.0
+pydantic-core>=2.0,<3.0
