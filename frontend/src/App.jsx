@@ -10,6 +10,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -47,7 +48,7 @@ function App() {
         ...prev,
         {
           role: 'system',
-          content: `✅ Successfully uploaded ${response.data.documents.length} document(s): ${response.data.documents.map(d => d.filename).join(', ')}`
+          content: `Successfully uploaded ${response.data.documents.length} document(s): ${response.data.documents.map(d => d.filename).join(', ')}`
         }
       ]);
     } catch (error) {
@@ -56,7 +57,7 @@ function App() {
         ...prev,
         {
           role: 'system',
-          content: `❌ Error uploading files: ${error.response?.data?.detail || error.message}`
+          content: `Error uploading files: ${error.response?.data?.detail || error.message}`
         }
       ]);
     } finally {
@@ -74,7 +75,6 @@ function App() {
     const userMessage = inputValue.trim();
     setInputValue('');
 
-    // Add user message to chat
     const newMessages = [
       ...messages,
       { role: 'user', content: userMessage }
@@ -83,17 +83,15 @@ function App() {
     setIsLoading(true);
 
     try {
-      // Prepare conversation history (excluding system messages)
       const conversationHistory = newMessages
         .filter(msg => msg.role !== 'system')
         .map(msg => ({ role: msg.role, content: msg.content }));
 
       const response = await axios.post(`${API_BASE_URL}/api/chat`, {
         question: userMessage,
-        conversation_history: conversationHistory.slice(-6) // Last 3 exchanges
+        conversation_history: conversationHistory.slice(-6)
       });
 
-      // Add AI response to chat
       setMessages([
         ...newMessages,
         {
@@ -127,9 +125,10 @@ function App() {
       setMessages([
         {
           role: 'system',
-          content: '🗑️ All documents have been cleared from the database.'
+          content: 'All documents have been cleared from the database.'
         }
       ]);
+      setShowSidebar(false);
     } catch (error) {
       console.error('Clear error:', error);
       alert('Error clearing documents: ' + (error.response?.data?.detail || error.message));
@@ -138,114 +137,167 @@ function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <h1>🤖 AI Document Chatbot</h1>
-        <p className="subtitle">Upload documents and ask questions about their content</p>
-      </header>
-
-      <div className="main-container">
-        <div className="sidebar">
-          <div className="upload-section">
-            <h3>📁 Upload Documents</h3>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf,.txt"
-              multiple
-              onChange={handleFileUpload}
-              disabled={isUploading}
-              id="file-input"
-              className="file-input"
-            />
-            <label htmlFor="file-input" className="upload-button">
-              {isUploading ? 'Uploading...' : 'Choose Files'}
-            </label>
-            <p className="upload-hint">PDF or TXT files</p>
-          </div>
-
-          {uploadedFiles.length > 0 && (
-            <div className="uploaded-files">
-              <h3>📚 Uploaded Files ({uploadedFiles.length})</h3>
+      <div className={`sidebar ${showSidebar ? 'open' : ''}`}>
+        <div className="sidebar-header">
+          <h2 className="sidebar-title">Documents</h2>
+          <button className="close-btn" onClick={() => setShowSidebar(false)}>×</button>
+        </div>
+        <div className="sidebar-content">
+          {uploadedFiles.length === 0 ? (
+            <p className="empty-state">No documents uploaded yet</p>
+          ) : (
+            <>
+              <div className="file-count">
+                {uploadedFiles.length} {uploadedFiles.length === 1 ? 'document' : 'documents'}
+              </div>
               <div className="file-list">
                 {uploadedFiles.map((file, idx) => (
                   <div key={idx} className="file-item">
-                    {file}
+                    <svg className="file-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="file-name">{file}</span>
                   </div>
                 ))}
               </div>
-              <button onClick={clearDocuments} className="clear-button">
-                Clear All Documents
-              </button>
-            </div>
+              <button onClick={clearDocuments} className="clear-btn">Clear All</button>
+            </>
           )}
         </div>
+      </div>
 
-        <div className="chat-container">
+      {showSidebar && <div className="overlay" onClick={() => setShowSidebar(false)} />}
+
+      <div className="main-content">
+        <header className="header">
+          <button className="menu-btn" onClick={() => setShowSidebar(true)}>
+            <svg className="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          <h1 className="header-title">AI Document Assistant</h1>
+        </header>
+
+        <div className="messages-container">
           <div className="messages">
             {messages.length === 0 ? (
-              <div className="welcome-message">
-                <h2>👋 Welcome!</h2>
-                <p>Upload one or more documents using the sidebar, then ask questions about their content.</p>
-                <div className="example-questions">
-                  <p><strong>Example questions:</strong></p>
-                  <ul>
-                    <li>What is this document about?</li>
-                    <li>Summarize the main points</li>
-                    <li>What does it say about [topic]?</li>
-                  </ul>
+              <div className="welcome">
+                <div className="welcome-content">
+                  <svg className="welcome-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                  <h2 className="welcome-title">Welcome</h2>
+                  <p className="welcome-text">Upload documents and start asking questions about their content</p>
+                  <div className="example-box">
+                    <p className="example-title">Example prompts</p>
+                    <div className="example-item">What is this document about?</div>
+                    <div className="example-item">Summarize the main points</div>
+                    <div className="example-item">What does it say about specific topics?</div>
+                  </div>
                 </div>
               </div>
             ) : (
-              messages.map((msg, idx) => (
-                <div key={idx} className={`message ${msg.role}`}>
-                  <div className="message-content">
-                    {msg.content}
-                  </div>
-                  {msg.sources && msg.sources.length > 0 && (
-                    <div className="sources">
-                      <details>
-                        <summary>📎 Sources ({msg.sources.length})</summary>
-                        <div className="source-list">
-                          {msg.sources.map((source, sidx) => (
-                            <div key={sidx} className="source-item">
-                              <strong>{source.filename}</strong> (Chunk {source.chunk_id + 1})
-                              <p className="source-preview">{source.content}</p>
-                            </div>
-                          ))}
+              <>
+                {messages.map((msg, idx) => (
+                  <div key={idx} className="message-wrapper">
+                    <div className={`message ${msg.role}`}>
+                      {msg.role === 'assistant' && (
+                        <div className="avatar">
+                          <svg className="avatar-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                          </svg>
                         </div>
-                      </details>
+                      )}
+                      <div className="message-content">
+                        <div className="message-bubble">{msg.content}</div>
+                        {msg.sources && msg.sources.length > 0 && (
+                          <div className="sources">
+                            <details>
+                              <summary>View {msg.sources.length} {msg.sources.length === 1 ? 'source' : 'sources'}</summary>
+                              <div className="sources-list">
+                                {msg.sources.map((source, sidx) => (
+                                  <div key={sidx} className="source-item">
+                                    <div className="source-header">
+                                      {source.filename} · Chunk {source.chunk_id + 1}
+                                    </div>
+                                    <div className="source-content">{source.content}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))
-            )}
-            {isLoading && (
-              <div className="message assistant">
-                <div className="message-content">
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
                   </div>
-                </div>
-              </div>
+                ))}
+                {isLoading && (
+                  <div className="message-wrapper">
+                    <div className="message assistant">
+                      <div className="avatar">
+                        <svg className="avatar-icon" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </div>
+                      <div className="message-content">
+                        <div className="typing-indicator">
+                          <span className="typing-dot"></span>
+                          <span className="typing-dot"></span>
+                          <span className="typing-dot"></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </>
             )}
-            <div ref={messagesEndRef} />
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="input-form">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              placeholder="Ask a question about your documents..."
-              disabled={isLoading}
-              className="message-input"
-            />
-            <button type="submit" disabled={isLoading || !inputValue.trim()} className="send-button">
-              Send
-            </button>
-          </form>
+        <div className="input-area">
+          <div className="input-container">
+            <form onSubmit={handleSubmit} className="input-form">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.txt"
+                multiple
+                onChange={handleFileUpload}
+                disabled={isUploading}
+                className="file-input"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="attach-btn"
+              >
+                <svg className="attach-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Message AI Document Assistant..."
+                disabled={isLoading}
+                className="text-input"
+              />
+              <button 
+                type="submit" 
+                disabled={isLoading || !inputValue.trim()} 
+                className={`send-btn ${inputValue.trim() && !isLoading ? 'active' : ''}`}
+              >
+                <svg className="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
@@ -253,4 +305,3 @@ function App() {
 }
 
 export default App;
-
