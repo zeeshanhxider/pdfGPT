@@ -5,24 +5,27 @@ A full-stack AI-powered document chatbot built with LangChain, FastAPI, and Reac
 ## Features
 
 ### Backend
-- ✅ Extract text from PDF and text files
-- ✅ Generate embeddings using HuggingFace Sentence Transformers
-- ✅ Store embeddings in Pinecone vector database for fast retrieval
-- ✅ Retrieval-Augmented Generation (RAG) using LangChain and Google Gemini API
-- ✅ Conversation history support for contextual responses
-- ✅ Source references for transparency
+
+- Extract text from PDF and text files
+- Generate embeddings using HuggingFace Sentence Transformers
+- Store embeddings in Pinecone vector database for fast retrieval
+- Retrieval-Augmented Generation (RAG) using LangChain and Google Gemini API
+- Conversation history support for contextual responses
+- Source references for transparency
 
 ### Frontend
-- ✅ Clean, modern chat interface
-- ✅ Multiple document upload support
-- ✅ Real-time chat with AI
-- ✅ Source references display
-- ✅ Conversation history tracking
-- ✅ Responsive design
+
+- Clean, modern chat interface
+- Multiple document upload support
+- Real-time chat with AI
+- Source references display
+- Conversation history tracking
+- Responsive design
 
 ## Tech Stack
 
 **Backend:**
+
 - FastAPI - Modern Python web framework
 - LangChain - LLM orchestration framework
 - Google Gemini API - Large Language Model
@@ -31,6 +34,7 @@ A full-stack AI-powered document chatbot built with LangChain, FastAPI, and Reac
 - PyPDF2 - PDF text extraction
 
 **Frontend:**
+
 - React - UI library
 - Vite - Build tool
 - Axios - HTTP client
@@ -112,14 +116,27 @@ npm run dev
 
 The frontend will run on `http://localhost:3000`
 
+## How It Works
+
+1. **Document Upload:** PDFs and text files are uploaded and text is extracted
+2. **Text Chunking:** Documents are split into overlapping chunks
+3. **Embedding:** Each chunk is converted to a 384-dimensional vector using HuggingFace embeddings
+4. **Storage:** Embeddings are stored in Pinecone with metadata (filename, chunk ID)
+5. **Question:** User asks a question
+6. **Retrieval:** Question is embedded and similar chunks are retrieved from Pinecone
+7. **Generation:** Retrieved chunks + question + conversation history are sent to Gemini
+8. **Response:** AI generates an answer based on the context
+
 ## Usage
 
 1. **Upload Documents**
+
    - Click "Choose Files" in the sidebar
    - Select one or more PDF or TXT files
    - Wait for the upload to complete
 
 2. **Ask Questions**
+
    - Type your question in the input field at the bottom
    - Press Enter or click "Send"
    - The AI will answer based on the uploaded documents
@@ -131,11 +148,13 @@ The frontend will run on `http://localhost:3000`
 ## API Endpoints
 
 ### `POST /api/upload`
+
 Upload one or more documents (PDF or text files)
 
 **Request:** Multipart form data with files
 
 **Response:**
+
 ```json
 {
   "message": "Successfully processed 2 document(s)",
@@ -150,20 +169,23 @@ Upload one or more documents (PDF or text files)
 ```
 
 ### `POST /api/chat`
+
 Ask a question about uploaded documents
 
 **Request:**
+
 ```json
 {
   "question": "What is this document about?",
   "conversation_history": [
-    {"role": "user", "content": "Previous question"},
-    {"role": "assistant", "content": "Previous answer"}
+    { "role": "user", "content": "Previous question" },
+    { "role": "assistant", "content": "Previous answer" }
   ]
 }
 ```
 
 **Response:**
+
 ```json
 {
   "answer": "The document is about...",
@@ -178,17 +200,21 @@ Ask a question about uploaded documents
 ```
 
 ### `DELETE /api/documents`
+
 Clear all documents from the vector database
 
 ### `GET /api/health`
+
 Health check endpoint
 
 ## Configuration
 
 ### Embedding Model
+
 The default embedding model is `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions). You can change this in `backend/services/document_service.py`.
 
 ### Chunk Size
+
 Documents are split into chunks of 1000 characters with 200 character overlap. Adjust in `backend/services/document_service.py`:
 
 ```python
@@ -199,6 +225,7 @@ self.text_splitter = RecursiveCharacterTextSplitter(
 ```
 
 ### Retrieval Settings
+
 The system retrieves the top 4 most relevant chunks. Adjust in `backend/services/chat_service.py`:
 
 ```python
@@ -231,37 +258,4 @@ retriever = self.vector_store.as_retriever(
 └────────────┘  └──────────┘
 ```
 
-## How It Works
-
-1. **Document Upload:** PDFs and text files are uploaded and text is extracted
-2. **Text Chunking:** Documents are split into overlapping chunks
-3. **Embedding:** Each chunk is converted to a 384-dimensional vector using HuggingFace embeddings
-4. **Storage:** Embeddings are stored in Pinecone with metadata (filename, chunk ID)
-5. **Question:** User asks a question
-6. **Retrieval:** Question is embedded and similar chunks are retrieved from Pinecone
-7. **Generation:** Retrieved chunks + question + conversation history are sent to Gemini
-8. **Response:** AI generates an answer based on the context
-
-## Troubleshooting
-
-### "PINECONE_API_KEY environment variable is not set"
-Make sure you've created a `.env` file in the `backend` directory with your API keys.
-
-### "Error uploading files"
-- Check that files are PDF or TXT format
-- Ensure Pinecone index is created (may take a minute on first run)
-- Check backend logs for detailed error messages
-
-### "Sorry, I encountered an error"
-- Ensure backend is running on port 8000
-- Check that you've uploaded documents before asking questions
-- Verify your Gemini API key is valid
-
-## License
-
-MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
+### made with 🧡 by zeeshan
