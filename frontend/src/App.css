@@ -37,7 +37,6 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid #2a3441;
 }
 
 .sidebar-title {
@@ -303,7 +302,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 19px;
+  margin-top: 9px;
 }
 
 .avatar-icon {
@@ -401,7 +400,7 @@
   gap: 6px;
   padding: 12px 12px;
   align-items: flex-end;
-  margin-top: 19px;
+  margin-top: 9px;
 }
 
 .typing-dot {

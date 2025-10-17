@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BotMessageSquare, X, SquareChevronRight  } from "lucide-react";
+import { BotMessageSquare, X, SquareChevronRight } from "lucide-react";
 import axios from "axios";
 import "./App.css";
 
@@ -211,7 +211,11 @@ function App() {
             {messages.length === 0 ? (
               <div className="welcome">
                 <div className="welcome-content">
-                  <BotMessageSquare  className="welcome-icon" size={48} strokeWidth={2} />
+                  <BotMessageSquare
+                    className="welcome-icon"
+                    size={48}
+                    strokeWidth={2}
+                  />
                   <h2 className="welcome-title">Welcome to pdfGPT</h2>
                   <p className="welcome-text">
                     Upload documents and start asking questions about their
@@ -226,7 +230,11 @@ function App() {
                     <div className={`message ${msg.role}`}>
                       {msg.role === "assistant" && (
                         <div className="avatar">
-                          <BotMessageSquare className="avatar-icon" size={32} strokeWidth={2} />
+                          <BotMessageSquare
+                            className="avatar-icon"
+                            size={32}
+                            strokeWidth={2}
+                          />
                         </div>
                       )}
                       <div className="message-content">
@@ -264,7 +272,11 @@ function App() {
                   <div className="message-wrapper">
                     <div className="message assistant">
                       <div className="avatar">
-                          <BotMessageSquare className="avatar-icon" size={32} strokeWidth={2} />
+                        <BotMessageSquare
+                          className="avatar-icon"
+                          size={32}
+                          strokeWidth={2}
+                        />
                       </div>
                       <div className="message-content">
                         <div className="typing-indicator">
