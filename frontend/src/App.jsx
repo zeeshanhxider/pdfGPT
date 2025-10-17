@@ -238,7 +238,15 @@ function App() {
                         </div>
                       )}
                       <div className="message-content">
-                        <div className="message-bubble">{msg.content}</div>
+                        <div
+                          className="message-bubble"
+                          dangerouslySetInnerHTML={{
+                            __html: msg.content.replace(
+                              /\*\*(.*?)\*\*/g,
+                              "<strong>$1</strong>"
+                            ),
+                          }}
+                        />
                         {msg.sources && msg.sources.length > 0 && (
                           <div className="sources">
                             <details>

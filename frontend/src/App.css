@@ -129,10 +129,12 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  font-family: inherit;
+  color: #7fa98e;
 }
 
 .clear-btn:hover {
-  background-color: #3a4451;
+  background-color: #313c4a;
 }
 
 .overlay {
@@ -340,7 +342,7 @@
 
 .message.system .message-bubble {
   background-color: #1f2937;
-  color: #8b949e;
+  color: #7fa98e;
   font-size: 13px;
   text-align: center;
 }
@@ -452,17 +454,11 @@
   border-radius: 14px;
   padding: 2px 4px;
   border: 1px solid #2a3441;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(127, 169, 142, 0.1);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.input-form:hover {
-  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(127, 169, 142, 0.15);
-}
-
 .input-form:focus-within {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(127, 169, 142, 0.3);
-  transform: translateY(-2px);
+  outline: 2px solid #2a3441;
 }
 
 .file-input {
@@ -533,12 +529,15 @@
 
 .send-btn.active {
   color: #7fa98e;
-  background-color: #2a3441;
 }
 
 .send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.send-btn:hover {
+  background-color: #2a3441;
 }
 
 .send-icon {
