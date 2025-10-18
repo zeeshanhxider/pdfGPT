@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BotMessageSquare, X, SquareChevronRight } from "lucide-react";
+import { MessageSquare, X, Menu } from "lucide-react";
 import axios from "axios";
 import "./App.css";
 
@@ -201,7 +201,7 @@ function App() {
       <div className="main-content">
         <header className="header">
           <button className="menu-btn" onClick={() => setShowSidebar(true)}>
-            <SquareChevronRight className="menu-icon" size={20} />
+            <Menu className="menu-icon" size={20} />
           </button>
           <h1 className="header-title">pdfGPT</h1>
         </header>
@@ -211,7 +211,7 @@ function App() {
             {messages.length === 0 ? (
               <div className="welcome">
                 <div className="welcome-content">
-                  <BotMessageSquare
+                  <MessageSquare
                     className="welcome-icon"
                     size={48}
                     strokeWidth={2}
@@ -230,7 +230,7 @@ function App() {
                     <div className={`message ${msg.role}`}>
                       {msg.role === "assistant" && (
                         <div className="avatar">
-                          <BotMessageSquare
+                          <MessageSquare
                             className="avatar-icon"
                             size={32}
                             strokeWidth={2}
@@ -280,7 +280,7 @@ function App() {
                   <div className="message-wrapper">
                     <div className="message assistant">
                       <div className="avatar">
-                        <BotMessageSquare
+                        <MessageSquare
                           className="avatar-icon"
                           size={32}
                           strokeWidth={2}

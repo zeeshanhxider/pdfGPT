@@ -1,0 +1,61 @@
+# Docker Compose configuration for full-stack web app
+
+services:
+  # FastAPI Backend Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pdfgpt-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Add your environment variables here
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - ./backend/.env
+    volumes:
+      # Mount for development (optional - remove in production)
+      - ./backend:/app
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pdfgpt-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+# Custom network for service communication
+networks:
+  app-network:
+    driver: bridge
+    name: pdfgpt-network
+
+# Optional: Add volumes for persistent data
+# volumes:
+#   app-data:
+#     driver: local
