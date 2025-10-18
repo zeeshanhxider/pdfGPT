@@ -2,6 +2,14 @@
 
 A full-stack AI-powered document chatbot built with LangChain, FastAPI, and React. Upload PDF or text documents and ask natural language questions about their content using Retrieval-Augmented Generation (RAG).
 
+## Preview
+
+<p align="center">
+  <img src="assets/screenshot-1.png" alt="Chatbot Main Screen" width="600" />
+  <br>
+  <img src="assets/screenshot-2.png" alt="Document Chat" width="600" />
+</p>
+
 ## Features
 
 ### Backend
